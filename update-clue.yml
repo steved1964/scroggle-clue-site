@@ -1,0 +1,65 @@
+name: Update clue.txt at 7:00pm LA (retry 7:01, DST-safe)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"
+    - cron: "1 2 * * *"
+    - cron: "0 3 * * *"
+    - cron: "1 3 * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: python -m pip install -U pip requests
+
+      - name: Gate by America/Los_Angeles time (7:00 or 7:01; only once/day)
+        id: gate
+        run: |
+          python - <<'PY'
+          from datetime import datetime
+          from zoneinfo import ZoneInfo
+          from pathlib import Path
+
+          now = datetime.now(ZoneInfo("America/Los_Angeles"))
+          should = (now.hour == 19 and now.minute in (0, 1))
+
+          stamp = Path(".last_update_la_date")
+          today = now.date().isoformat()
+          already = stamp.exists() and stamp.read_text().strip() == today
+
+          go = should and not already
+          out = Path(".github_output")
+          out.write_text(f"GO={'1' if go else '0'}\n", encoding="utf-8")
+
+          if go:
+              stamp.write_text(today, encoding="utf-8")
+
+          print(f"LA now={now.isoformat()} should={should} already={already} GO={int(go)}")
+          PY
+          cat .github_output >> "$GITHUB_OUTPUT"
+
+      - name: Generate public/clue.txt
+        if: steps.gate.outputs.GO == '1'
+        run: |
+          mkdir -p public
+          python generate_clue.py > public/clue.txt
+
+      - name: Commit and push if changed
+        if: steps.gate.outputs.GO == '1'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/clue.txt .last_update_la_date
+          git diff --cached --quiet || (git commit -m "Update clue.txt" && git push)
