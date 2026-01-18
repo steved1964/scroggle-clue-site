@@ -1,4 +1,4 @@
-name: Update clue.txt at 7:00pm LA (retry 7:01, DST-safe)
+name: Update clue.txt at 8:00pm LA only
 
 on:
   workflow_dispatch:
@@ -21,7 +21,7 @@ jobs:
       - name: Install deps
         run: python -m pip install -U pip requests
 
-      - name: Gate by America/Los_Angeles time (7:00 or 7:01; only once/day)
+      - name: Gate by America/Los_Angeles time (8:00 only; once/day)
         id: gate
         run: |
           python - <<'PY'
@@ -31,7 +31,6 @@ jobs:
 
           now = datetime.now(ZoneInfo("America/Los_Angeles"))
           should = (now.hour == 20 and now.minute == 0)
-
 
           stamp = Path(".last_update_la_date")
           today = now.date().isoformat()
@@ -61,10 +60,3 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/clue.txt .last_update_la_date
           git diff --cached --quiet || (git commit -m "Update clue.txt" && git push)
-
-
-
-
-
-
-
