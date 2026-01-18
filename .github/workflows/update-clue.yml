@@ -3,10 +3,7 @@ name: Update clue.txt at 7:00pm LA (retry 7:01, DST-safe)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 2 * * *"
-    - cron: "1 2 * * *"
-    - cron: "0 3 * * *"
-    - cron: "1 3 * * *"
+    - cron: "0 4 * * *"
 
 permissions:
   contents: write
@@ -64,6 +61,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add public/clue.txt .last_update_la_date
           git diff --cached --quiet || (git commit -m "Update clue.txt" && git push)
+
 
 
 
